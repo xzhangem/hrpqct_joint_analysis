@@ -85,26 +85,14 @@ pip install numpy scipy tqdm jinja2 pyparsing psutil requests aiohttp fsspec xxh
 python -c "import torch, pytorch3d, torch_geometric, nnunetv2, open3d, pyvista; print('ok')"
 ```
 
-## One-shot script
+### One-shot script
 
 ```bash
 bash scripts/install.sh
 ```
 
-## Notes
 
-- Install **PyTorch before** PyTorch3D, PyG extensions, and nnU-Net.
-- Pinning every transitive dependency (`pip freeze`) will break installs on other machines. Keep only the commands above.
-- `open3d` / `pyvista` / `vtk` may fail on unusual system libraries. Treat them as optional if they are not required for your entry script.
-- Recreating the env later:
-
-  ```bash
-  conda deactivate
-  conda env remove -n npj
-  bash scripts/install.sh
-  ```
-
-## Stack
+### Stack
 
 | Component | Version / source |
 | --- | --- |
