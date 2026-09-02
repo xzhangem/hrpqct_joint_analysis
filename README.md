@@ -1,4 +1,4 @@
-Reproducible setup for the `npj` Conda environment: **PyTorch 2.5.1 + CUDA 12.1**, **nnU-Net v2**, **PyTorch3D**, and **PyTorch Geometric**, plus 3D / medical imaging utilities.
+Reproducible setup for the `joint` Conda environment: **PyTorch 2.5.1 + CUDA 12.1**, **nnU-Net v2**, **PyTorch3D**, and **PyTorch Geometric**, plus 3D / medical imaging utilities.
 
 > Do **not** install from a raw `pip freeze` dump. `torch`, `pytorch3d`, and the PyG CUDA extensions must come from their own wheel indexes.
 
@@ -16,8 +16,8 @@ CPU-only machines and macOS cannot reproduce this environment with the commands 
 ### 1. Create the environment
 
 ```bash
-conda create -n npj python=3.10 -y
-conda activate npj
+conda create -n joint python=3.10 -y
+conda activate joint
 python -m pip install -U pip setuptools wheel ninja
 ```
 
@@ -86,36 +86,6 @@ python -c "import torch, pytorch3d, torch_geometric, nnunetv2, open3d, pyvista; 
 ```
 
 ## One-shot script
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-conda create -n npj python=3.10 -y
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate npj
-
-python -m pip install -U pip setuptools wheel ninja
-
-pip install torch torchvision torchaudio \
-  --index-url https://download.pytorch.org/whl/cu121
-
-pip install iopath fvcore
-pip install --no-deps \
-  --extra-index-url https://miropsota.github.io/torch_packages_builder \
-  "pytorch3d==0.7.9+d9839a9pt2.5.1cu121"
-
-pip install --no-deps "torch-geometric==2.6.1"
-pip install --no-deps \
-  pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv \
-  -f https://data.pyg.org/whl/torch-2.5.0+cu121.html
-
-pip install nnunetv2
-pip install trimesh edt numba pyvista "fastmorph[spherical]" open3d potpourri3d
-pip install numpy scipy tqdm jinja2 pyparsing psutil requests aiohttp fsspec xxhash
-```
-
-Save as `scripts/install.sh`, then:
 
 ```bash
 bash scripts/install.sh
