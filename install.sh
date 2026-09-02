@@ -9,8 +9,8 @@ fi
 # shellcheck disable=SC1091
 source "$(conda info --base)/etc/profile.d/conda.sh"
 
-conda create -n npj python=3.10 -y
-conda activate npj
+conda create -n joint python=3.10 -y
+conda activate joint
 
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 pip install nnunetv2
@@ -29,4 +29,4 @@ pip install numpy scipy tqdm jinja2 pyparsing psutil requests aiohttp fsspec xxh
 pip install --no-deps "torch-geometric==2.6.1"
 pip install --no-deps pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv  -f https://data.pyg.org/whl/torch-2.5.0+cu121.html
 
-echo "Done. Activate with: conda activate npj"
+echo "Done. Activate with: conda activate joint"
