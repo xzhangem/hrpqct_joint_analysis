@@ -235,5 +235,8 @@ Each abnormality object in the same file also stores:
 These three quantities are computed on the cluster points, not on the filled
 CT volume. The same values are printed while the case runs.
 
+# Data
+Due to patient privacy and institutional ethical restrictions, the data are not public available. Data are only available from Professor. Lai-Shan Tam  on reasonable request, subject to appropriate ethical approval.
+
 
 
