@@ -9,7 +9,7 @@ from pathlib import Path
 from tqdm import tqdm
 import sklearn.metrics as skm
 
-# ====================== Dataset（保持你原来的，略微优化） ======================
+# ====================== Dataset ======================
 class VariablePointCloudDataset(Dataset):
     def __init__(self, root_dir, split='train'):
         self.root_dir = Path(root_dir) / split
@@ -31,7 +31,7 @@ class VariablePointCloudDataset(Dataset):
         pc = np.load(self.files[idx]).astype(np.float32)  # [N, 3]
         label = self.labels[idx]
         
-        # 数据增强（你的原始增强保留）
+        # Data augmentation
         theta = np.random.uniform(0, 2 * np.pi)
         rot = np.array([[np.cos(theta), -np.sin(theta), 0],
                         [np.sin(theta),  np.cos(theta), 0],
@@ -45,7 +45,7 @@ class VariablePointCloudDataset(Dataset):
 
 def collate_fn(batch): return Batch.from_data_list(batch)
 
-# ====================== 模型（你原来的，保持不变） ======================
+# ====================== model ======================
 class VariablePointNetPlusPlusBinary(nn.Module):
     def __init__(self, in_channels=3):
         super().__init__()
@@ -135,11 +135,11 @@ class VariablePointNetPlusPlusBinary(nn.Module):
         return self.fc3(x)   # [B, 1] logit
     '''
 
-# ====================== 训练主函数（推荐直接运行） ======================
+# ====================== training ======================
 def train_model(data_root="your_data_root", batch_size=2, epochs=100):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    # 1. 加载完整数据集并拆分
+    # 1. Load data
     full_dataset = VariablePointCloudDataset(data_root, split='train')
     train_size = int(0.95 * len(full_dataset))
     val_size = len(full_dataset) - train_size
@@ -168,7 +168,7 @@ def train_model(data_root="your_data_root", batch_size=2, epochs=100):
             optimizer.step()
             train_loss += loss.item()
         
-        # ====================== 验证 ======================
+        # ====================== validation ======================
         model.eval()
         all_preds, all_labels = [], []
         val_loss = 0.0
@@ -190,18 +190,18 @@ def train_model(data_root="your_data_root", batch_size=2, epochs=100):
         print(f"Epoch {epoch+1:03d} | Train Loss: {train_loss/len(train_loader):.4f} | "
               f"Val Loss: {val_loss/len(val_loader):.4f} | Acc: {acc:.4f} | AUC: {auc:.4f}")
         
-        # 保存最佳模型
+        # save best
         if acc > best_acc:
             best_acc = acc
             torch.save(model.state_dict(), "pointnet2_best.pth")
-            print(f"★ 新最佳模型已保存！Acc = {acc:.4f}")
+            print(f" best saved Acc = {acc:.4f}")
         
-        # 每 10 epoch 额外保存一次
+        # save per 10 epochs
         if (epoch + 1) % 10 == 0:
             torch.save(model.state_dict(), f"pointnet2_epoch{epoch+1}.pth")
     
-    print("训练完成！最佳模型已保存为 pointnet2_best.pth")
+    print("save best after training pointnet2_best.pth")
     return model
 
 if __name__ == "__main__":
-    train_model(data_root='./data/')   # ← 只改这一行路径即可
+    train_model(data_root='./data/')   # 
