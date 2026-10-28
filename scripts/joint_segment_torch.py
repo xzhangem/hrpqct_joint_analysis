@@ -202,12 +202,6 @@ def nnunet_predict(
     keep_model=False,
 ):
     """
-    输入
-        nii_path  : 待分割的 .nii
-        model_dir : 训练好的 nnU-Net 目录（含 fold_0/ 的那一层）
-    输出
-        mask : uint8 {0,1}，(z, y, x)，在 CPU 上
-    keep_model=False 时推理完立即卸载 nnU-Net，把显存还给 level set。
     """
     from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
     from nnunetv2.imageio.simpleitk_reader_writer import SimpleITKIO
