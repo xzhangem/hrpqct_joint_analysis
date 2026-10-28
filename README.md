@@ -2,6 +2,8 @@ Reproducible setup for the `joint` Conda environment: **PyTorch 2.5.1 + CUDA 12.
 
 > Do **not** install from a raw `pip freeze` dump. `torch`, `pytorch3d`, and the PyG CUDA extensions must come from their own wheel indexes.
 
+![image](https://github.com/xzhangem/hrpqct_joint_analysis/blob/main/figures/diagram.png)
+
 ## Requirements
 
 - Linux x86_64
