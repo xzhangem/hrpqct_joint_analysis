@@ -283,37 +283,32 @@ def Div2d(x, y):
 
 
 def gaussian_kernel_1d(sigma, size=None):
-    """生成 1D 高斯核 (可分離)"""
     if size is None:
-        size = int(4 * sigma + 1)   # 通常 4~6 sigma 涵蓋足夠
+        size = int(4 * sigma + 1)   # 4~6 sigma
         size = size if size % 2 == 1 else size + 1
     x = torch.arange(-size//2 + 1, size//2 + 1, dtype=torch.float32)
     kernel = torch.exp(-x**2 / (2 * sigma**2))
-    kernel = kernel / kernel.sum()          # 歸一化
+    kernel = kernel / kernel.sum()         
     return kernel
 
 
 def gaussian_blur3d(input_vol, sigma, kernel_size):
     """
-    對 3D 體積做高斯模糊 (可分離 1D 卷積 ×3，速度快很多)
-    
-    input_vol: shape [B, C, D, H, W] 或 [C, D, H, W] 或 [D, H, W]
-    sigma: 可以是單一 float 或 (sigma_d, sigma_h, sigma_w)
     """
     if isinstance(sigma, (int, float)):
         sigma = (sigma, sigma, sigma)
     
-    # 為每個維度生成 1D 核
+   
     kd = gaussian_kernel_1d(sigma[0], kernel_size)
     kh = gaussian_kernel_1d(sigma[1], kernel_size)
     kw = gaussian_kernel_1d(sigma[2], kernel_size)
     
-    # 轉成 1D → 需要 reshape 成 conv3d 需要的形狀
+    
     kd = kd.view(1, 1, -1, 1, 1)   # [1,1,kd,1,1]
     kh = kh.view(1, 1, 1, -1, 1)   # [1,1,1,kh,1]
     kw = kw.view(1, 1, 1, 1, -1)   # [1,1,1,1,kw]
     
-    # 補齊 batch & channel 維度
+   
     if input_vol.dim() == 3:
         input_vol = input_vol.unsqueeze(0).unsqueeze(0)  # → [1,1,D,H,W]
     elif input_vol.dim() == 4:
@@ -323,7 +318,7 @@ def gaussian_blur3d(input_vol, sigma, kernel_size):
     padding_h = (kh.shape[3] - 1) // 2
     padding_w = (kw.shape[4] - 1) // 2
     
-    # 可分離卷積：三次 3D conv，但每次只在一個軸上作用
+    
     out = F.conv3d(input_vol, kd, padding=(padding_d, 0, 0), groups=input_vol.shape[1])
     out = F.conv3d(out,       kh, padding=(0, padding_h, 0), groups=input_vol.shape[1])
     out = F.conv3d(out,       kw, padding=(0, 0, padding_w), groups=input_vol.shape[1])
@@ -374,41 +369,40 @@ def DistReg(phi):
     else:
         raise TypeError("Input phi must be numpy.ndarray or torch.Tensor")
 
-    # 计算梯度 (使用 torch.gradient)
+    
     phi_x, phi_y, phi_z = torch.gradient(phi, dim=(0, 1, 2))
 
-    # 计算梯度模长
-    s = torch.sqrt(phi_x**2 + phi_y**2 + phi_z**2 + 1e-10)  # 防止除零
+    
+    s = torch.sqrt(phi_x**2 + phi_y**2 + phi_z**2 + 1e-10)  
 
-    # 定义势阱区域
+    
     a = (s >= 0) & (s <= 1)          # 0 ≤ s ≤ 1
     b = s > 1                         # s > 1
 
-    # ps 函数（双势阱的导数相关项）
+    
     ps = torch.zeros_like(s)
     ps[a] = torch.sin(2 * torch.pi * s[a]) / (2 * torch.pi)
     ps[b] = s[b] - 1
 
-    # dps/ds （对 s 的导数）
-    # 当 ps == 0 时特殊处理，避免除零
+    
     dps = torch.zeros_like(s)
     nonzero_ps = (ps != 0)
     zero_ps = ~nonzero_ps
 
     dps[nonzero_ps] = ps[nonzero_ps]
-    # 当 ps ≈ 0 且 s ≠ 0 时，dps/ds ≈ 1；s=0 时可设为 0 或其他平滑值
+   
     dps[zero_ps] = 1.0 * (s[zero_ps] != 0)
 
-    # 计算向量场： dps * ∇φ - ∇φ = (dps - 1) * ∇φ
+    
     vec_x = dps * phi_x - phi_x
     vec_y = dps * phi_y - phi_y
     vec_z = dps * phi_z - phi_z
 
-    # Div( (dps-1) ∇φ ) + 4 * Laplacian(φ)
+    
     div_term = Div(vec_x, vec_y, vec_z)
     lap_term = del3d(phi) * 4.0
 
-    # 最终正则化项
+    
     f = div_term + lap_term
 
     return f
@@ -422,14 +416,14 @@ def SmoothDirac(phi, epsilon, device=None):
     else:
         raise TypeError("Input phi must be numpy.ndarray or torch.Tensor")
 
-    # 计算核心部分：(1/(2ε)) * (1 + cos(π phi / ε))
+   
     cos_term = torch.cos(torch.pi * phi / epsilon)
     f = (1.0 / (2.0 * epsilon)) * (1.0 + cos_term)
 
-    # 掩码：只在 [-epsilon, epsilon] 区间内非零
+    
     mask = (phi >= -epsilon) & (phi <= epsilon)
 
-    # 应用掩码（区间外置零）
+    
     f = f * mask.float()   # mask 是 bool，转为 float (0/1)
 
     return f
@@ -437,20 +431,6 @@ def SmoothDirac(phi, epsilon, device=None):
 
 def SmoothHeavi(phi, epsilon):
     """
-    光滑的 Heaviside 阶跃函数（常用于 level set 方法中的区域指示函数）
-
-    当 |phi| <= epsilon 时：
-        H(phi) ≈ 0.5 * (1 + phi/ε + (1/π) sin(π phi / ε))
-    当 phi > epsilon 时：  H(phi) = 1
-    当 phi < -epsilon 时： H(phi) = 0
-
-    参数:
-        phi: 输入水平集函数，可以是 numpy.ndarray 或 torch.Tensor
-        epsilon: 光滑参数（宽度），通常为 1.0 ~ 2.0
-        device: 可选，指定计算设备；若不传则自动检测
-
-    返回:
-        torch.Tensor，与 phi 相同形状的光滑 Heaviside 函数值
     """
     if isinstance(phi, np.ndarray):
         phi = torch.from_numpy(phi).to(device=device, dtype=torch.float32)
