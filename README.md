@@ -198,6 +198,8 @@ Cortex 1 is red and cortex 2 is green. Each abnormality has its own
 high-contrast colour. The transparency column in the description file is
 `1.00`; a value of `255` makes ITK-SNAP drop the labels on import.
 
+![image](https://github.com/xzhangem/hrpqct_joint_analysis/blob/main/figures/itkhai.png)
+
 ## Metrics
 
 `*_microhai_labels_labels.json` starts with the source path and the JSW
