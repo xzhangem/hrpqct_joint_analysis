@@ -101,3 +101,137 @@ bash scripts/install.sh
 | PyTorch3D | `0.7.9+d9839a9pt2.5.1cu121` |
 | PyTorch Geometric | 2.6.1 + `torch-2.5.0+cu121` extensions |
 | nnU-Net | `nnunetv2` |
+
+# Run
+
+The analysis entry point is `run_microhai.py`. It expects the source scripts
+(`joint_segment_torch.py`, `gesm_match_adv.py`, `export_abnormality_ply.py`,
+`ply_to_nii.py`) in the same directory, plus:
+
+- `nnUNet_results/Dataset101_JointCT/nnUNetTrainer__nnUNetPlans__3d_fullres`
+- healthy templates `mean_mcp2.ply` and `mean_mcp3.ply`
+
+The joint is chosen from the file name. `MCP_2` and `MCP2` use
+`mean_mcp2.ply`; `MCP_3` and `MCP3` use `mean_mcp3.ply`. Names such as
+`00000530_00002107_R_MCP_2_o.nii` are recognised. MCP4 and other joints are
+skipped.
+
+## One volume
+
+```bash
+conda activate joint
+cd /path/to/src
+python run_microhai.py 538_2134_MCP_2.nii
+```
+
+Optional arguments:
+
+```bash
+python run_microhai.py 538_2134_MCP_2.nii \
+  --out-dir results/538_2134_MCP_2 \
+  --template-dir . \
+  --percentile 75 \
+  --min-points 20
+```
+
+`--percentile` is the signed-distance threshold used to keep candidate
+abnormal points. `--min-points` drops clusters smaller than this size
+(the paper uses 20).
+
+## A folder of volumes
+
+Put the NIfTI files in `joint_nii_file`, next to `batch_run_microhai.py`.
+
+```bash
+python batch_run_microhai.py
+python batch_run_microhai.py --skip-existing
+python batch_run_microhai.py --input joint_nii_file --output joint_nii_results
+```
+
+Each volume is written to its own folder under `joint_nii_results/<stem>/`.
+A failed case is logged and the batch continues. `--skip-existing` skips a
+case whose `*_microhai_labels.nii.gz` is already present. Per-case time is
+printed and stored in `joint_nii_results/batch_log.csv`.
+
+# Results
+
+For an input `538_2134_MCP_2.nii` the case folder contains:
+
+| File | What it is |
+|---|---|
+| `538_2134_MCP_2_up.ply` | Proximal cortical surface |
+| `538_2134_MCP_2_down.ply` | Distal cortical surface |
+| `reg_538_2134_MCP_2_up.ply` | Healthy template registered to the proximal surface |
+| `538_2134_MCP_2_jsw.json` | Joint-space metrics from the segmentation step |
+| `abnormality_ply/` | One PLY per abnormality cluster, plus `*_kinds.json` |
+| `538_2134_MCP_2_microhai_labels.nii.gz` | Label volume aligned to the source CT |
+| `538_2134_MCP_2_microhai_labels_labels.json` | Record of every label and the JSW metrics |
+| `538_2134_MCP_2_microhai_labels_itksnap.txt` | ITK-SNAP colours and names |
+
+Cortical PLY files are in the padded voxel-index frame used by meshing
+(transpose to x, y, z, pad 5, origin 0, spacing 1), not in NIfTI millimetres.
+`reg_*.ply` is in the same patient-surface frame and is the registered
+template, not an abnormality cloud.
+
+## Labels
+
+In `*_microhai_labels.nii.gz`:
+
+- 1: proximal cortex
+- 2: distal cortex
+- 3 and above: one label per abnormality cluster
+
+An abnormality is the volume between the patient surface and the registered
+healthy template, restricted to the cluster. Erosion is the missing bone
+(inside the template, outside the patient bone). Proliferation is the extra
+bone (outside the template, inside the patient bone).
+
+## ITK-SNAP
+
+1. **File → Open Image** and open the source CT, for example `538_2134_MCP_2.nii`.
+2. **Segmentation → Open Segmentation** and choose `*_microhai_labels.nii.gz`.
+   Do not add it as another image.
+3. **Segmentation → Import Label Descriptions** and choose `*_itksnap.txt`.
+4. Update the 3D mesh if it is not already shown.
+
+Cortex 1 is red and cortex 2 is green. Each abnormality has its own
+high-contrast colour. The transparency column in the description file is
+`1.00`; a value of `255` makes ITK-SNAP drop the labels on import.
+
+## Metrics
+
+`*_microhai_labels_labels.json` starts with the source path and the JSW
+block:
+
+```json
+{
+  "reference": ".../538_2134_MCP_2.nii",
+  "jsw": {
+    "JSV": 203.995,
+    "JSW_Mean": 0.826,
+    "JSW_Min": 0.164,
+    "JSW_Max": 2.354,
+    "JSW_SD": 0.507,
+    "JSW_Asymm": 14.353,
+    "n_voxels": 369980
+  }
+}
+```
+
+JSW follows the SPECTRA consensus local-thickness definition and is reported
+in millimetres at the HR-pQCT resolution used for that run (0.082 mm here).
+`JSV` is the joint-space volume in mm³. `JSW_Asymm` is max / min.
+
+Each abnormality object in the same file also stores:
+
+- `volume_mm3`: convex-hull volume of the cluster, in mm³ at 82 µm
+- `shape_index`: Löwner–John shape index ρ_d of the patient cluster
+- `shape_index_healthy`: the same index ρ_h on the closest template points
+- `relative_change_of_shape_index`: r = max((ρ_h − ρ_d) / ρ_d, 0)
+- `over_flat`: true when ρ_d > 10, which the paper treats as not a lesion
+
+These three quantities are computed on the cluster points, not on the filled
+CT volume. The same values are printed while the case runs.
+
+
+
