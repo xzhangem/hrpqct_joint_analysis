@@ -112,23 +112,21 @@ The analysis entry point is `run_microhai.py`. It expects the source scripts
 - healthy templates `mean_mcp2.ply` and `mean_mcp3.ply`
 
 The joint is chosen from the file name. `MCP_2` and `MCP2` use
-`mean_mcp2.ply`; `MCP_3` and `MCP3` use `mean_mcp3.ply`. Names such as
-`00000530_00002107_R_MCP_2_o.nii` are recognised. MCP4 and other joints are
-skipped.
+`mean_mcp2.ply`; `MCP_3` and `MCP3` use `mean_mcp3.ply`. 
 
 ## One volume
 
 ```bash
 conda activate joint
 cd /path/to/src
-python run_microhai.py 538_2134_MCP_2.nii
+python run_microhai.py xxx_MCP_2.nii
 ```
 
 Optional arguments:
 
 ```bash
-python run_microhai.py 538_2134_MCP_2.nii \
-  --out-dir results/538_2134_MCP_2 \
+python run_microhai.py xxx_MCP_2.nii \
+  --out-dir results/xxx_MCP_2 \
   --template-dir . \
   --percentile 75 \
   --min-points 20
@@ -159,14 +157,14 @@ For an input `538_2134_MCP_2.nii` the case folder contains:
 
 | File | What it is |
 |---|---|
-| `538_2134_MCP_2_up.ply` | Proximal cortical surface |
-| `538_2134_MCP_2_down.ply` | Distal cortical surface |
-| `reg_538_2134_MCP_2_up.ply` | Healthy template registered to the proximal surface |
-| `538_2134_MCP_2_jsw.json` | Joint-space metrics from the segmentation step |
+| `xxx_MCP_2_up.ply` | Proximal cortical surface |
+| `xxx_MCP_2_down.ply` | Distal cortical surface |
+| `xxx_MCP_2_up.ply` | Healthy template registered to the proximal surface |
+| `xxx_MCP_2_jsw.json` | Joint-space metrics from the segmentation step |
 | `abnormality_ply/` | One PLY per abnormality cluster, plus `*_kinds.json` |
-| `538_2134_MCP_2_microhai_labels.nii.gz` | Label volume aligned to the source CT |
-| `538_2134_MCP_2_microhai_labels_labels.json` | Record of every label and the JSW metrics |
-| `538_2134_MCP_2_microhai_labels_itksnap.txt` | ITK-SNAP colours and names |
+| `xxx_MCP_2_microhai_labels.nii.gz` | Label volume aligned to the source CT |
+| `xxx_MCP_2_microhai_labels_labels.json` | Record of every label and the JSW metrics |
+| `xxx_MCP_2_microhai_labels_itksnap.txt` | ITK-SNAP colours and names |
 
 Cortical PLY files are in the padded voxel-index frame used by meshing
 (transpose to x, y, z, pad 5, origin 0, spacing 1), not in NIfTI millimetres.
@@ -205,15 +203,15 @@ block:
 
 ```json
 {
-  "reference": ".../538_2134_MCP_2.nii",
+  "reference": ".../xxx_MCP_2.nii",
   "jsw": {
-    "JSV": 203.995,
-    "JSW_Mean": 0.826,
-    "JSW_Min": 0.164,
-    "JSW_Max": 2.354,
-    "JSW_SD": 0.507,
-    "JSW_Asymm": 14.353,
-    "n_voxels": 369980
+    "JSV": ---,
+    "JSW_Mean": ---,
+    "JSW_Min": ---,
+    "JSW_Max": ---,
+    "JSW_SD": ---,
+    "JSW_Asymm": ---,
+    "n_voxels": ---
   }
 }
 ```
